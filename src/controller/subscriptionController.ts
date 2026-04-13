@@ -1,7 +1,66 @@
 import { Request, Response } from "express"
 import webhookRepo from "../repositories/webhookRepo"
 
-const webhookController = {
+const subscriptionController = {
+  getProducts: async (req: Request, res: Response) => {
+    const plans = await fetch("https://api.whop.com/api/v2/products", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+    })
+    let data = await plans.json()
+    let products: any[] = []
+    data.data.forEach((product: any) => {
+      products.push({
+        id: product.id,
+      })
+    })
+    res.status(200).json({
+      success: true,
+      message: "Products Fetched Successfully",
+      products,
+    })
+  },
+  getSingleProduct: async (req: Request, res: Response) => {
+    const { id } = req.params
+    const product = await fetch(`https://api.whop.com/api/v2/products/${id}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+    })
+    let data = await product.json()
+    res.status(200).json({
+      success: true,
+      message: "Product Fetched Successfully",
+      product: data,
+    })
+  },
+  getPlans: async (req: Request, res: Response) => {
+    const { id } = req.params
+    const plans = await fetch(`https://api.whop.com/api/v2/plans/${id}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+    })
+    let data = await plans.json()
+    res.status(200).json({
+      success: true,
+      message: "PLans Fetched Successfully",
+      data: {
+        directLink: data.direct_link,
+        cardPayments: data.card_payments,
+        paypalAccepted: data.paypal_accepted,
+        period: data.billing_period,
+        price: data.renewal_price,
+      },
+    })
+  },
   webhook: async (req: Request, res: Response) => {
     try {
       const { type, data } = req.body
@@ -66,4 +125,4 @@ const webhookController = {
   },
 }
 
-export default webhookController
+export default subscriptionController
