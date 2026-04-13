@@ -1,18 +1,14 @@
 import { Request, Response } from "express"
 import webhookRepo from "../repositories/webhookRepo"
+import whop from "../services/whop.service"
 
 const subscriptionController = {
   getProducts: async (req: Request, res: Response) => {
-    const plans = await fetch("https://api.whop.com/api/v2/products", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+    const plans = await whop().products.list({
+      company_id: process.env.WHOP_COMPANY_KEY as string,
     })
-    let data = await plans.json()
     let products: any[] = []
-    data.data.forEach((product: any) => {
+    plans.data.forEach((product: any) => {
       products.push({
         id: product.id,
       })
@@ -25,40 +21,33 @@ const subscriptionController = {
   },
   getSingleProduct: async (req: Request, res: Response) => {
     const { id } = req.params
-    const product = await fetch(`https://api.whop.com/api/v2/products/${id}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-    })
-    let data = await product.json()
+    const product = await whop().products.retrieve(id as string)
     res.status(200).json({
       success: true,
       message: "Product Fetched Successfully",
-      product: data,
+      product: product,
     })
   },
   getPlans: async (req: Request, res: Response) => {
-    const { id } = req.params
-    const plans = await fetch(`https://api.whop.com/api/v2/plans/${id}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+    const { productId } = req.params
+    const plans = await whop().plans.list({
+      product_id: productId as string,
+      company_id: process.env.WHOP_COMPANY_KEY as string,
     })
-    let data = await plans.json()
+    const plansData = plans.data.map((plan: any) => {
+      return {
+        id: plan.id,
+        name: plan.name,
+        price: plan.renewal_price,
+        currency: plan.currency,
+        interval: plan.billing_period,
+        purchase_url: plan.purchase_url,
+      }
+    })
     res.status(200).json({
       success: true,
-      message: "PLans Fetched Successfully",
-      data: {
-        directLink: data.direct_link,
-        cardPayments: data.card_payments,
-        paypalAccepted: data.paypal_accepted,
-        period: data.billing_period,
-        price: data.renewal_price,
-      },
+      message: "Plans Fetched Successfully",
+      plans: plansData,
     })
   },
   webhook: async (req: Request, res: Response) => {
