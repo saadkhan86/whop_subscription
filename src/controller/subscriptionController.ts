@@ -4,6 +4,7 @@ import whop from "../services/whop.service"
 
 const subscriptionController = {
   getProducts: async (req: Request, res: Response) => {
+    console.log("hit")
     const plans = await whop().products.list({
       company_id: process.env.WHOP_COMPANY_KEY as string,
     })
